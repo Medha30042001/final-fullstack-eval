@@ -10,13 +10,8 @@ export const getBalance = async (req, res) => {
       .eq("id", userId)
       .single();
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    if (!data) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(404).json({ error: "User not found" });
 
     return res.status(200).json({
       message: "User balance fetched",
@@ -31,19 +26,17 @@ export const getStatement = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const { data: statement, error } = await supabase
+    const { data, error } = await supabase
       .from("transactions")
       .select("*")
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     return res.status(200).json({
       message: "Statement fetched",
-      statement: statement || [],
+      statement: data || [],
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -52,7 +45,7 @@ export const getStatement = async (req, res) => {
 
 export const makeTransfer = async (req, res) => {
   try {
-    const sender_id = req.user.id;
+    const senderId = req.user.id;
     const { receiver_id, amount } = req.body;
 
     if (!receiver_id?.trim()) {
@@ -62,46 +55,38 @@ export const makeTransfer = async (req, res) => {
     const parsedAmount = Number(amount);
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res
-        .status(400)
-        .json({ error: "Amount must be greater than 0" });
-    }
-
-    if (sender_id === receiver_id) {
       return res.status(400).json({
-        error: "Sender and receiver should not be the same",
+        error: "Amount must be greater than 0",
       });
     }
 
-    // get sender
+    if (senderId === receiver_id) {
+      return res.status(400).json({
+        error: "Sender and receiver cannot be same",
+      });
+    }
+
+    // fetch sender
     const { data: sender, error: senderErr } = await supabase
       .from("users")
       .select("*")
-      .eq("id", sender_id)
+      .eq("id", senderId)
       .single();
 
-    if (senderErr) {
-      return res.status(500).json({ error: senderErr.message });
-    }
+    if (senderErr) return res.status(500).json({ error: senderErr.message });
+    if (!sender) return res.status(404).json({ error: "Sender not found" });
 
-    if (!sender) {
-      return res.status(404).json({ error: "Sender not found" });
-    }
-
-    // get receiver
+    // fetch receiver
     const { data: receiver, error: receiverErr } = await supabase
       .from("users")
       .select("*")
       .eq("id", receiver_id)
       .single();
 
-    if (receiverErr) {
+    if (receiverErr)
       return res.status(500).json({ error: receiverErr.message });
-    }
-
-    if (!receiver) {
+    if (!receiver)
       return res.status(404).json({ error: "Receiver not found" });
-    }
 
     if (Number(sender.balance) < parsedAmount) {
       return res.status(400).json({ error: "Insufficient balance" });
@@ -110,52 +95,48 @@ export const makeTransfer = async (req, res) => {
     const newSenderBalance = Number(sender.balance) - parsedAmount;
     const newReceiverBalance = Number(receiver.balance) + parsedAmount;
 
-    // update sender balance
+    // update balances
     const { error: sendErr } = await supabase
       .from("users")
       .update({ balance: newSenderBalance })
-      .eq("id", sender_id);
+      .eq("id", senderId);
 
-    if (sendErr) {
-      return res.status(500).json({ error: sendErr.message });
-    }
+    if (sendErr) return res.status(500).json({ error: sendErr.message });
 
-    // update receiver balance
     const { error: receiveErr } = await supabase
       .from("users")
       .update({ balance: newReceiverBalance })
       .eq("id", receiver_id);
 
-    if (receiveErr) {
+    if (receiveErr)
       return res.status(500).json({ error: receiveErr.message });
-    }
 
-    // insert both debit and credit entries
-    const { data: transaction, error: transferErr } = await supabase
+    // insert ledger entries
+    const { data: txns, error: txnErr } = await supabase
       .from("transactions")
       .insert([
         {
-          sender_id,
-          receiver_id,
+          user_id: senderId,
+          other_user_id: receiver_id,
           amount: parsedAmount,
           transaction_type: "debit",
+          balance_after: newSenderBalance,
         },
         {
-          sender_id,
-          receiver_id,
+          user_id: receiver_id,
+          other_user_id: senderId,
           amount: parsedAmount,
           transaction_type: "credit",
+          balance_after: newReceiverBalance,
         },
       ])
       .select();
 
-    if (transferErr) {
-      return res.status(500).json({ error: transferErr.message });
-    }
+    if (txnErr) return res.status(500).json({ error: txnErr.message });
 
     return res.status(201).json({
-      message: "Transaction made",
-      transaction,
+      message: "Transfer successful",
+      transactions: txns,
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -171,9 +152,7 @@ export const getAllUsers = async (req, res) => {
       .select("id, name, email, balance")
       .neq("id", currentUserId);
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     return res.status(200).json({
       message: "Users fetched successfully",
