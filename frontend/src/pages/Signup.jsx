@@ -1,8 +1,42 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const Signup = () => {
+
+    const nav = useNavigate();
+
+    const [form, setForm] = useState({
+        name : "",
+        email : "",
+        password : ""
+    })
+
+    const submit = async (e) => {
+        e.preventDefault();
+        await AudioParam.post('/auth/signup', form);
+        alert("Signup success");
+        nav('/login');
+    }
+
   return (
-    <div>Signup</div>
+    <>
+        <div className='h-screen flex justify-center items-center'>
+            <form onSubmit={submit}>
+                <h2>Signup</h2>
+
+                <input className='border p-2'
+                    placeholder='Name'
+                    onChange={(e) => setForm({...form, name:e.target.value})}/>
+
+                <input type="text" name="" id="" />
+
+                <input type="text" name="" id="" />
+
+                <button className="bg-blue-500 p-2"
+                >Signup</button>
+            </form>
+        </div>
+    </>
   )
 }
 
