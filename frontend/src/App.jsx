@@ -1,19 +1,46 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "./assets/vite.svg";
+import heroImg from "./assets/hero.png";
+import "./App.css";
+
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Signup from "./pages/Signup";
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <>
-      <div className="bg-red-500 text-white p-4">
-  Tailwind working
-</div>
+      <BrowserRouter>
+        <Routes>
+          {/* <Route path='/login' element={<Login />} /> */}
+          <Route path='/signup' element={<Signup />} />
+
+          {/* <Route 
+          path="/statement" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }/>
+
+          <Route 
+          path="/transfer" element={
+            <ProtectedRoute>
+              <Transfer />
+            </ProtectedRoute>
+          }/>
+
+          <Route 
+          path="/statement" element={
+            <ProtectedRoute>
+              <Statement />
+            </ProtectedRoute>
+          }/> */}
+          
+        </Routes>
+      </BrowserRouter>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

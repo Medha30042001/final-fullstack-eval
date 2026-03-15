@@ -28,9 +28,13 @@ const Signup = () => {
                     placeholder='Name'
                     onChange={(e) => setForm({...form, name:e.target.value})}/>
 
-                <input type="text" name="" id="" />
+                <input className='border p-2'
+                    placeholder='Email'
+                    onChange={(e) => setForm({...form, email:e.target.value})}/>
 
-                <input type="text" name="" id="" />
+                <input className='border p-2'
+                    placeholder='Password'
+                    onChange={(e) => setForm({...form, password:e.target.value})}/>
 
                 <button className="bg-blue-500 p-2"
                 >Signup</button>
